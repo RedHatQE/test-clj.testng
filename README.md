@@ -3,7 +3,7 @@ test_clj.testng is a small library that allows Clojure functions to be run as Te
 Usage:
 ======
 
-    (ns sm.gui.tests.register-tests
+    (ns my.tests
       (:use [test-clj.testng :only (gen-class-testng)])
       (:import [org.testng.annotations Test BeforeClass]))
  
@@ -25,4 +25,3 @@ Note several things:
 * Call to gen-class-testng at the end
 * Each function needs to accept one argument (at runtime this will be the instance of the generated class).  Often you will not need this argument, so the Clojure convention is to call it "_" when it is unused.
 * You will need to AOT compile your Clojure files that call (gen-class-testng), once they are compiled, testng will run them just as any other java class.
-
