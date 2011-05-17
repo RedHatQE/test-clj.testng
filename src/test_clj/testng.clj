@@ -1,7 +1,7 @@
 (ns test-clj.testng
   (:use [clojure.contrib.map-utils :only [deep-merge-with]])
   (:import [org.testng.annotations AfterClass AfterGroups AfterMethod AfterSuite AfterTest	 
-	    BeforeClass BeforeGroups BeforeMethod BeforeSuite BeforeTest Test]))
+	    BeforeClass BeforeGroups BeforeMethod BeforeSuite BeforeTest Test DataProvider]))
 
 
 (defn method-name [t]
@@ -10,6 +10,9 @@
 (defn test? [t]
   (some (meta t) [AfterClass AfterGroups AfterMethod AfterSuite AfterTest	 
 		  BeforeClass BeforeGroups BeforeMethod BeforeSuite BeforeTest Test]))
+
+(defn dataprovider? [t]
+  (some (meta t) [DataProvider]))
 
 (defn class-keys-to-symbol [m]
   (let [cm (select-keys m (filter class? (keys m)))
@@ -26,6 +29,9 @@
               k))
           (vals m)))
 
+(defn num-args [t]
+  (- (apply max (map count (:arglists (meta t))))
+     1))
 
 (defmacro gen-class-testng
   "Generates an ahead-of-time compiled java class from whatever
@@ -33,10 +39,15 @@
   metadata containing TestNG annotations will be turned into TestNG
   test methods."
   []
-  (let [methods (for [test (filter test? (vals (ns-publics *ns*)))] 
+  (let [publics (vals (ns-publics *ns*))
+        methods (for [test (filter test? publics)] 
                   `[~(with-meta (symbol (method-name test))
-                       (class-keys-to-symbol (meta test))) [] ~'void])]
-    `(gen-class :prefix "" :name ~(symbol (namespace-munge *ns*)) :methods [~@methods])))
+                       (class-keys-to-symbol (meta test)))
+                    ~(vec (repeat (num-args test) Object)) ~'void])
+        dps (for [dp (filter dataprovider? publics)] 
+                  `[~(with-meta (symbol (method-name dp))
+                       (class-keys-to-symbol (meta dp))) [] "[[Ljava.lang.Object;"])]
+    `(gen-class :prefix "" :name ~(symbol (namespace-munge *ns*)) :methods [~@methods ~@dps])))
 
 
 (defmacro data-driven
