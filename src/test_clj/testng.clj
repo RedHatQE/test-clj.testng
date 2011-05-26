@@ -14,20 +14,20 @@
 (defn dataprovider? [t]
   (some (meta t) [DataProvider]))
 
-(defn class-keys-to-symbol [m]
-  (let [cm (select-keys m (filter class? (keys m)))
-        rest (dissoc m cm)
-        sm (zipmap (for [k (keys m)] (-> k .getName symbol))
-	    (vals m))]
-    (merge rest sm)))
-
-(defn symbol-keys-to-class [m]
+(defn convert-keys "Takes a map m and passes its keys that match pred through function f."
+  [m pred f]
   (zipmap (for [k (keys m)]
-            (if (symbol? k)
-              (let [r (resolve k)]
-                (if (class? r) r k))
+            (if (pred k)
+              (f k)
               k))
           (vals m)))
+
+(defn class-keys-to-symbol [m]
+  (convert-keys m class? (fn [k] (-> k .getName symbol))))
+
+(defn symbol-keys-to-class [m]
+  (convert-keys m symbol? (fn [k] (let [r (resolve k)]
+                             (if (class? r) r k)))))
 
 (defn num-args [t]
   (- (apply max (map count (:arglists (meta t))))
