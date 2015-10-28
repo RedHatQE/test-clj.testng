@@ -1,0 +1,30 @@
+.project
+.classpath
+.lein-deps-sum
+.lein-repl-history
+.nrepl-port
+.pydevproject
+pom.xml
+bin
+classes
+checkouts
+test-output
+target
+lib
+tmp/*
+.nrepl-history
+
+## editor files
+*~
+\#*
+.\#*
+*.swp
+*.swo
+
+## intellij files
+.idea
+sm.iml
+
+## for plugin settings like counter-clockwise
+.settings
+
