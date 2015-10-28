@@ -1,14 +1,35 @@
 (ns test-clj.testng
-  (:use [clojure.contrib.map-utils :only [deep-merge-with]])
-  (:import [org.testng.annotations AfterClass AfterGroups AfterMethod AfterSuite AfterTest	 
-	    BeforeClass BeforeGroups BeforeMethod BeforeSuite BeforeTest Test DataProvider]))
+  (:import [org.testng.annotations
+            AfterClass
+            AfterGroups
+            AfterMethod
+            AfterSuite
+            AfterTest
+            BeforeClass
+            BeforeGroups
+            BeforeMethod
+            BeforeSuite
+            BeforeTest
+            Test
+            DataProvider]))
 
+;; this is no longer in contrib and hasn't made it back into core
+(defn deep-merge-with
+  "Like merge-with, but merges maps recursively, applying the given fn
+  only when there's a non-map at a particular level."
+  [f & maps]
+  (apply
+    (fn m [& maps]
+      (if (every? map? maps)
+        (apply merge-with m maps)
+        (apply f maps)))
+    maps))
 
 (defn method-name [t]
   (str (:name (meta t))))
 
 (defn test? [t]
-  (some (meta t) [AfterClass AfterGroups AfterMethod AfterSuite AfterTest	 
+  (some (meta t) [AfterClass AfterGroups AfterMethod AfterSuite AfterTest
 		  BeforeClass BeforeGroups BeforeMethod BeforeSuite BeforeTest Test]))
 
 (defn dataprovider? [t]
@@ -33,6 +54,17 @@
   (- (apply max (map count (:arglists (meta t))))
      1))
 
+(defn doc-meta
+  "Takes testng function t and uses its docstring to populate :description
+  if it doesn't already exists."
+  [t]
+  (let [m (meta t)]
+    (if (and (contains? m Test)
+             (contains? m :doc)
+             (not (contains? (get m Test) :description)))
+      (assoc-in m [Test :description] (:doc m))
+      m)))
+
 (defmacro gen-class-testng
   "Generates an ahead-of-time compiled java class from whatever
   namespace it's called from.  Any functions in the namespace with
@@ -40,11 +72,11 @@
   test methods."
   []
   (let [publics (vals (ns-publics *ns*))
-        methods (for [test (filter test? publics)] 
+        methods (for [test (filter test? publics)]
                   `[~(with-meta (symbol (method-name test))
-                       (class-keys-to-symbol (meta test)))
+                       (class-keys-to-symbol (doc-meta test)))
                     ~(vec (repeat (num-args test) Object)) ~'void])
-        dps (for [dp (filter dataprovider? publics)] 
+        dps (for [dp (filter dataprovider? publics)]
                   `[~(with-meta (symbol (method-name dp))
                        (class-keys-to-symbol (meta dp))) [] "[[Ljava.lang.Object;"])]
     `(gen-class :prefix "" :name ~(symbol (namespace-munge *ns*)) :methods [~@methods ~@dps])))
@@ -60,11 +92,11 @@ be fully qualified.  Finally, each item in 'data' can have its own
 metadata, which will be merged with 'newmeta'. "
 
  [myfn newmeta data]
-  (let [basename (-> myfn resolve meta :name str) 
+  (let [basename (-> myfn resolve meta :name str)
         newmeta (symbol-keys-to-class newmeta)
         merge-fn (fn [a b] (if (coll? a) (vec (concat a b)) b))
         defns (for [[count item] (map-indexed vector (eval data))]
-                `(defn ~(with-meta (symbol (str basename  "_" count)) 
+                `(defn ~(with-meta (symbol (str basename  "_" count))
                           (deep-merge-with merge-fn
                                            (update-in newmeta [Test :groups]
                                                       (fn [v a] (vec (conj v a))) basename)
@@ -72,5 +104,3 @@ metadata, which will be merged with 'newmeta'. "
                    [_#]
                    (~myfn ~@item)))]
     `(do ~@defns)))
-
-
