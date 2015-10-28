@@ -1,4 +1,4 @@
-test_clj.testng is a small library that allows Clojure functions to be run as TestNG tests.  It works by generating java classes (using Clojure's built-in gen-class function) that have TestNG annotations.
+test-clj.testng is a small library that allows Clojure functions to be run as TestNG tests.  It works by generating java classes (using Clojure's built-in gen-class function) that have TestNG annotations.
 
 Usage:
 ======
@@ -6,11 +6,11 @@ Usage:
     (ns my.tests
       (:use [test-clj.testng :only (gen-class-testng)])
       (:import [org.testng.annotations Test BeforeClass]))
- 
+
     (defn ^{BeforeClass {}}
       setup [_]
       (do-setup-stuff))
-   
+
     (defn ^{Test {:groups ["mytests"]}}
       simple_test [_]
       (do-my-stuff))
